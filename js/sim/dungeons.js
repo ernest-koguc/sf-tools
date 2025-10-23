@@ -21,16 +21,18 @@ class DungeonSimulator extends SimulatorBase {
 
         let score = 0;
         let healths = [];
+        let playerHealths = [];
 
         if (players.length === 1) {
             // Single-player battle
             SimulatorModel.initializeFighters(this.cache_players[0], this.cache_boss);
 
             for (let i = 0; i < iterations; i++) {
-                let { win, health } = this.battleSingle();
+                let { win, health, playerHealth } = this.battleSingle();
     
                 score += win;
                 healths.push(health);
+                playerHealths.push(playerHealth);
             }
         } else {
             // Multi-player battle
@@ -73,10 +75,41 @@ class DungeonSimulator extends SimulatorBase {
             healths.sort((a, b) => a - b);
         }
 
+        let playerHealthsLength = playerHealths.length;
+        truncSteps = Math.max(1, Math.floor(playerHealthsLength / hpcap));
+        if (truncSteps > 1) {
+            let truncLength = Math.ceil(playerHealthsLength / truncSteps);
+            let truncHealths = new Array(truncLength);
+
+            playerHealths.sort((a, b) => a - b);
+
+            for (let i = 0; i < truncLength; i++) {
+                let sliceSum = 0;
+                let slices = 0;
+                for (let j = 0; j < truncSteps; j++) {
+                    let iterator = i * truncSteps + j;
+                    if (iterator >= playerHealthsLength) {
+                        break;
+                    } else {
+                        slices++;
+                        sliceSum += playerHealths[iterator];
+                    }
+                }
+
+                if (slices > 0) {
+                    truncHealths[i] = Math.max(0, sliceSum / slices);
+                }
+            }
+
+            playerHealths = truncHealths;
+        } else {
+            playerHealths.sort((a, b) => a - b);
+        }
         return {
             iterations: iterations,
             score: score,
-            healths: healths
+            healths: healths,
+            playerHealths: playerHealths
         };
     }
 
@@ -96,7 +129,8 @@ class DungeonSimulator extends SimulatorBase {
 
         return {
             win,
-            health: win ? 0 : this.cache_boss.Health / this.cache_boss.getHealth()
+            health: win ? 0 : this.cache_boss.Health / this.cache_boss.getHealth(),
+            playerHealth: this.cache_players[0].Health / this.cache_players[0].getHealth()
         }
     }
 

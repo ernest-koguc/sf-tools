@@ -737,6 +737,7 @@ Site.ready({ name: 'dungeons', type: 'simulator', requires: ['translations_monst
             const playerInstances = preparePlayerInstances(dungeon);
 
             const results = [];
+            const playerResults = [];
             let logs = [];
 
             let totalScore = 0;
@@ -745,8 +746,10 @@ Site.ready({ name: 'dungeons', type: 'simulator', requires: ['translations_monst
 
             for (let i = 0; i < instances; i++) {
                 batch.add(
-                    ({ results: { score, healths }, logs: _logs }) => {
+                    ({ results: { score, healths, playerHealths }, logs: _logs }) => {
                         results.push(healths);
+                        playerResults.push(playerHealths);
+
                         logs = logs.concat(_logs);
 
                         totalScore += score;
@@ -772,8 +775,20 @@ Site.ready({ name: 'dungeons', type: 'simulator', requires: ['translations_monst
                     finalResults[i] = healthsSum / instances;
                 }
 
+                const playerFinalResults = new Array(playerResults[0].length);
+                for (let i = 0; i < playerResults[0].length; i++) {
+                    let healthsSum = 0;
+                    for (let j = 0; j < instances; j++) {
+                        healthsSum += playerResults[j][i];
+                    }
+
+                    playerFinalResults[i] = healthsSum / instances;
+                }
+
                 showGraph(chart, dungeon, boss, totalScore, instances * iterations, _sortAsc(finalResults));
                 $('#winchart').removeClass('faded-out');
+                const avgPlayerHealth = playerFinalResults.reduce((a, b) => a + b, 0) / playerFinalResults.length;
+                $('#playerHealth').text(avgPlayerHealth.toFixed(2) * 100 + '%');
 
                 // Download logs
                 if (logs.length > 0) {
